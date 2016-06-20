@@ -5,25 +5,33 @@ package com.example.android.sunshine.app.api.model;
  */
 public class Temperature {
 
-    private double min_temp;
-    private double max_temp;
+    private long min_temp;
+    private long max_temp;
     private String description;
 
     public Temperature(double min_temp, double max_temp, String description) {
-        this.min_temp = min_temp;
-        this.max_temp = max_temp;
+        this.min_temp = formatTemperature(min_temp);
+        this.max_temp = formatTemperature(max_temp);
         this.description = description;
     }
 
-    public double getMinTemp() {
+    private long formatTemperature(double temp) {
+        return Math.round(temp);
+    }
+
+    public long getMinTemp() {
         return min_temp;
     }
 
-    public double getMaxTemp() {
+    public long getMaxTemp() {
         return max_temp;
     }
 
     public String getDescription() {
         return description;
+    }
+
+    public String getHighLowTemp() {
+        return getMaxTemp() + "/" + getMinTemp();
     }
 }

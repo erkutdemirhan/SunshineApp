@@ -3,7 +3,6 @@ package com.example.android.sunshine.app.mvp.weatherForecastList.fragments;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -19,6 +18,7 @@ import com.example.android.sunshine.app.api.HttpImplementation;
 import com.example.android.sunshine.app.api.model.Temperature;
 import com.example.android.sunshine.app.api.parser.WeatherDataParser;
 import com.example.android.sunshine.app.base.BaseFragment;
+import com.example.android.sunshine.app.utils.DateUtils;
 
 import org.json.JSONException;
 
@@ -27,9 +27,11 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Created by Ekrem on 11/06/16.
+ * Created by Erkut on 11/06/16.
  */
 public class ForecastFragment extends BaseFragment {
+
+    private ArrayAdapter<String> arrayAdapter;
 
     public ForecastFragment() {
 
@@ -46,10 +48,9 @@ public class ForecastFragment extends BaseFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_forecast, container, false);
         List<String> dummyWeatherForecastData  = createDummyWeatherForecastData();
-        ArrayAdapter<String> weatherForecastAdapter = new ArrayAdapter<String>(getActivity(), R.layout.list_item_layout, R.id.list_item_forecast_textview, dummyWeatherForecastData);
+        arrayAdapter = new ArrayAdapter<String>(getContext(), R.layout.list_item_layout, dummyWeatherForecastData);
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
-        listView.setAdapter(weatherForecastAdapter);
-
+        listView.setAdapter(arrayAdapter);
         return rootView;
     }
 
@@ -83,7 +84,7 @@ public class ForecastFragment extends BaseFragment {
         return dataList;
     }
 
-    private class FetchWeatherDataTask extends AsyncTask<String, Void, String> {
+    private class FetchWeatherDataTask extends AsyncTask<String, Void, List<Temperature>> {
 
         private HttpApi httpApi;
 
@@ -97,29 +98,39 @@ public class ForecastFragment extends BaseFragment {
         }
 
         @Override
-        protected String doInBackground(String... params) {
+        protected List<Temperature> doInBackground(String... params) {
             String postalCode = params[0];
             String resultJsonString = httpApi.getOneWeekDailyWeatherForecastByPostalCode(postalCode);
-            return resultJsonString;
-        }
-
-        @Override
-        protected void onPostExecute(String resultJsonString) {
+            List<Temperature> temperatureList = new ArrayList<>();
             if(resultJsonString != null) {
-                Log.d("ForecastFragment", resultJsonString);
                 try {
-                    List<Temperature> temperatureList = WeatherDataParser.jsonToTemperatureList(resultJsonString);
-                    for(Temperature temperature:temperatureList) {
-                        Log.d("ForecastFragment", "min temp="
-                                +temperature.getMinTemp()
-                                +", max temp="
-                                +temperature.getMaxTemp()
-                                +", description="+temperature.getDescription());
-                    }
+                    temperatureList = WeatherDataParser.jsonToTemperatureList(resultJsonString);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
+            return temperatureList;
+        }
+
+        @Override
+        protected void onPostExecute(List<Temperature> temperatureList) {
+            if(temperatureList != null) {
+                updateWeatherData(temperatureList);
+            }
+        }
+
+        private void updateWeatherData(List<Temperature> temperatureList) {
+            arrayAdapter.clear();
+            for (int i=0; i<temperatureList.size(); i++) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(DateUtils.getDateAfterNumberOfDays(i));
+                sb.append(" - ");
+                sb.append(temperatureList.get(i).getDescription());
+                sb.append(" - ");
+                sb.append(temperatureList.get(i).getHighLowTemp());
+                arrayAdapter.add(sb.toString());
+            }
+            arrayAdapter.notifyDataSetChanged();
         }
     }
 }
